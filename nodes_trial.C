@@ -82,8 +82,69 @@ Node* newNode(int key)
     return (node); 
 }
 
-Node* create_tree(int key) {
-}
+Node* create_tree(Node*& root, int key, vector<string> index_list) {
+    int size = index_list.size();
+    int i = 0;
+    // start with root node
+    Node *curr = root;
+
+    // pointer to store parent node of current node
+    Node *parent = nullptr;
+
+    // if tree is empty, create a new node and set root
+    if (root == nullptr){
+      root = newNode(key);
+      return root;
+    }
+
+    vector<int> j_pass_values = {};
+
+for (int i = 1; i < index_list.size(); i++) {
+     j_pass_values.push_back(position_stop(index_list[0], index_list[i]));
+   }
+
+ string b_value_1 = binary_value_fun(index_list[0]);
+ 
+ // find minimum value for all discriminative positions
+   int min_val = *min_element(j_pass_values.begin(), j_pass_values.end());
+
+// create lists to differentiate between discriminatory bits and not
+  string item;
+  vector<int> m_same = {};
+  vector<int> m_other = {};
+  vector<int> index_list_same = {};
+  vector<int> index_list_other = {};
+
+// find discriminative bits and fill lists with relative position - Alg 2
+  for (int i = 0; i < index_list.size(); i++) {
+      item = index_list[i];
+      if (item[min_val + 1] == b_value_1[1]) {
+	cout << i << endl;
+	cout << "n_3" << endl;
+	m_same.push_back(item[min_val + 1]);
+	index_list_same.push_back(i);
+	curr = curr -> left;
+      } else {
+	cout << i << endl;
+	cout << "n_2" << endl;
+	m_other.push_back(item[min_val + 1]);
+	index_list_other.push_back(i);
+	curr = curr -> right;
+      }
+  }
+  
+
+    // construct a new node and assign to appropriate parent pointer
+    if (key < parent->key){
+      parent->left = newNode(key);
+    } else {
+      parent->right = newNode(key);
+    }
+    
+    //return nullptr;
+  }
+  
+  
 
 int main() 
 { 
@@ -150,65 +211,3 @@ int main()
   
 }  
 
-Node* create_tree(Node*& root, int key, vector<int> index_list) {
-    int size = index_list.size();
-    int i = 0;
-    // start with root node
-    Node *curr = root;
-
-    // pointer to store parent node of current node
-    Node *parent = nullptr;
-
-    // if tree is empty, create a new node and set root
-    if (root == nullptr){
-      root = newNode(key);
-      return;
-    }
-
-    vector<int> j_pass_values = {};
-
-for (int i = 1; i < index_list.size(); i++) {
-     j_pass_values.push_back(position_stop(index_list[0], index_list[i]));
-   }
-
- string b_value_1 = binary_value_fun(index_list);
- 
- // find minimum value for all discriminative positions
-   int min_val = *min_element(j_pass_values.begin(), j_pass_values.end());
-
-// create lists to differentiate between discriminatory bits and not
-  string item;
-  vector<int> m_same = {};
-  vector<int> m_other = {};
-  vector<int> index_list_same = {};
-  vector<int> index_list_other = {};
-
-// find discriminative bits and fill lists with relative position - Alg 2
-  for (int i = 0; i < index_list.size(); i++) {
-      item = index_list[i];
-      if (item[min_val + 1] == b_value_1[1]) {
-	cout << i << endl;
-	cout << "n_3" << endl;
-	m_same.push_back(item[min_val + 1]);
-	index_list_same.push_back(i);
-	curr = curr -> left;
-      } else {
-	cout << i << endl;
-	cout << "n_2" << endl;
-	m_other.push_back(item[min_val + 1]);
-	index_list_other.push_back(i);
-	curr = curr -> right;
-      }
-  }
-  
-
-    // construct a new node and assign to appropriate parent pointer
-    if (key < parent->data){
-      parent->left = newNode(key);
-    } else {
-      parent->right = newNode(key);
-    }
-    
-    
-  }
-  
