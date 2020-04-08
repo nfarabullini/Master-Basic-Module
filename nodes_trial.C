@@ -1,213 +1,203 @@
-#include <bits/stdc++.h>
-#include <limits>
-#include <boost/algorithm/string.hpp>
-#include <algorithm>
-#include <iostream> 
+#include <iostream>
 #include <vector>
-#include <string>
+#include <cstdint>
+#include <bits/stdc++.h>
 
 using namespace std;
 
-// function to convert path to binary
-string binary_path_fun(string myString) {
-  
-  string binary_path;
-  
-  for (std::size_t i = 0; i < myString.size(); ++i) {
-     bitset<8> b_1(myString.c_str()[i]);
-     binary_path+= b_1.to_string();
+enum Dimension {
+  Path,
+  Value,
+  Leaf
+};
+
+
+struct BinaryKey {
+  std::vector<bool> path_;
+  std::vector<bool> value_;
+
+  void Dump() {
+    std::cout << "path:  ";
+    PrintBitVector(path_);
+    std::cout << std::endl;
+    std::cout << "value: ";
+    PrintBitVector(value_);
+    std::cout << std::endl;
   }
-  return binary_path;
-}
 
-// function to convert value to binary
-string binary_value_fun(const string& s)
-{
-    stringstream ss;
-    ss << hex << s;
-    unsigned n;
-    ss >> n;
-    bitset<32> b_1(n);
-
-    //unsigned x = 0;
-    //if (boost::starts_with(s, "0x") || boost::starts_with(s, "0X")) x = 2;
-    //return b_2.to_string().substr(32 - 4*(s.length() - 2));
-
-    return b_1.to_string();
-}
-
-// function to find position of last mutual bit - Alg 1
-int position_stop (string b_path_1, string b_path_2) {
-
-  // define two new strings for loops
-    string item_1;
-    string item_2;
-
-    vector<string> list_paths = {b_path_1, b_path_2};
-    int lst_size_paths;
-    lst_size_paths = list_paths.size();
-    int j_pass;
-
-    // loop over paths to find differing position - Alg 1
-    for (int i = 1; i < lst_size_paths; i++) {
-        item_1 = list_paths[i - 1];
-        item_2 = list_paths[i];
-        int item_1_size = item_1.size();
-	int j = 0;
-        while (j < item_1_size) {
-            if (item_1[j] == item_2[j]) {
-	      j_pass = j;
-	    } else {
-	      break;
-	    }
-	    j++;
-	}
-    }
-    return j_pass;
-}
-
-// Binary Tree Node 
-struct Node { 
-    int key; 
-    Node *left, *right; 
-}; 
-  
-/* utility that allocates a new Node  
-   with the given key */
-Node* newNode(int key) 
-{ 
-    Node* node = new Node; 
-    node->key = key; 
-    node->left = node->right = nullptr; 
-    return (node); 
-}
-
-Node* create_tree(Node*& root, int key, vector<string> index_list) {
-    int size = index_list.size();
-    int i = 0;
-    // start with root node
-    Node *curr = root;
-
-    // pointer to store parent node of current node
-    Node *parent = nullptr;
-
-    // if tree is empty, create a new node and set root
-    if (root == nullptr){
-      root = newNode(key);
-      return root;
-    }
-
-    vector<int> j_pass_values = {};
-
-for (int i = 1; i < index_list.size(); i++) {
-     j_pass_values.push_back(position_stop(index_list[0], index_list[i]));
-   }
-
- string b_value_1 = binary_value_fun(index_list[0]);
- 
- // find minimum value for all discriminative positions
-   int min_val = *min_element(j_pass_values.begin(), j_pass_values.end());
-
-// create lists to differentiate between discriminatory bits and not
-  string item;
-  vector<int> m_same = {};
-  vector<int> m_other = {};
-  vector<int> index_list_same = {};
-  vector<int> index_list_other = {};
-
-// find discriminative bits and fill lists with relative position - Alg 2
-  for (int i = 0; i < index_list.size(); i++) {
-      item = index_list[i];
-      if (item[min_val + 1] == b_value_1[1]) {
-	cout << i << endl;
-	cout << "n_3" << endl;
-	m_same.push_back(item[min_val + 1]);
-	index_list_same.push_back(i);
-	curr = curr -> left;
-      } else {
-	cout << i << endl;
-	cout << "n_2" << endl;
-	m_other.push_back(item[min_val + 1]);
-	index_list_other.push_back(i);
-	curr = curr -> right;
+  void PrintBitVector(const std::vector<bool>& v) {
+    for (size_t i = 0; i < v.size(); ++i) {
+      std::cout << (v[i] ? "1" : "0");
+      if ((i+1) % 8 == 0) {
+        std::cout << " ";
       }
+    }
   }
-  
 
-    // construct a new node and assign to appropriate parent pointer
-    if (key < parent->key){
-      parent->left = newNode(key);
+  const std::vector<bool>& Get(Dimension d) {
+    if (d == Path) {
+      return path_;
+    } else if (d == Value) {
+      return value_;
     } else {
-      parent->right = newNode(key);
+      throw std::invalid_argument("BinaryKey does not have a value for dimension Leaf");
     }
-    
-    //return nullptr;
   }
-  
-  
+};
 
-int main() 
-{ 
 
-  //initialize strings for conversion
-  vector<string> list_str_paths = {"/bom/item/canoe$", "/bom/item/carabinier$", "/bom/item/car/battery$", "/bom/item/car/battery$", "/bom/item/car/belt$"};
 
-  vector<string> list_str_values = {"0x00010E50", "0x000000F1", "0x0003D35A", "0x0003D3B0", "0x00000B4A"};
+std::vector<bool> path_to_binary(const std::string& path) {
+  std::vector<bool> bpath(8*(path.size()+1), false);
+  const char *path_c = path.c_str();
+  for (std::size_t i = 0; i < path.size()+1; ++i) {
+    std::bitset<8> bitset(path_c[i]);
+    for (int j = 0; j < 8; j++) {
+      bpath[i*8+(8-j-1)] = bitset[j];
+    }
+  }
+  return bpath;
+}
 
-   // convert to binary
-   for (int i = 0; i < list_str_paths.size(); i++) {
-     list_str_paths[i] = binary_path_fun(list_str_paths[i]);
-   }
 
-   for (int i = 0; i < list_str_values.size(); i++) {
-     list_str_values[i] = binary_value_fun(list_str_values[i]);
-   }
+std::vector<bool> value_to_binary(uint32_t value) {
+  std::vector<bool> bvalue(32, false);
+  for (int i = 0; i < 32; ++i) {
+    bvalue[32-i-1] = value & 1;
+    value >>= 1;
+  }
+  return bvalue;
+}
 
-   string b_value_1 = binary_value_fun(list_str_values[0]);
 
-   // find last mutual position
-   vector<int> j_pass_values = {};
-   vector<int> j_pass_paths = {};
+size_t dsc_inc(std::vector<BinaryKey>& keys, Dimension d, size_t g) {
 
-   for (int i = 1; i < list_str_values.size(); i++) {
-     j_pass_values.push_back(position_stop(list_str_values[0], list_str_values[i]));
-   }
-   
-   for (int i = 1; i < list_str_paths.size(); i++) {
-     j_pass_paths.push_back(position_stop(list_str_paths[0], list_str_paths[i]));
-   }
-
-   // find minimum value for all discriminative positions
-   int min_path = *min_element(j_pass_paths.begin(), j_pass_paths.end());
-   int min_val = *min_element(j_pass_values.begin(), j_pass_values.end());
-
-  // create lists to differentiate between discriminatory bits and not
-  string item;
-  vector<int> m_same = {};
-  vector<int> m_other = {};
-  vector<int> index_list_same = {};
-  vector<int> index_list_other = {};
-  
-    // find discriminative bits and fill lists with relative position - Alg 2
-  for (int i = 0; i < list_str_values.size(); i++) {
-      item = list_str_values[i];
-      if (item[min_val + 1] == b_value_1[1]) {
-	cout << i << endl;
-	cout << "n_3" << endl;
-	m_same.push_back(item[min_val + 1]);
-	index_list_same.push_back(i);
-      } else {
-	cout << i << endl;
-	cout << "n_2" << endl;
-	m_other.push_back(item[min_val + 1]);
-	index_list_other.push_back(i);
+  for(int i = 0; i < keys.size(); i++) {
+    BinaryKey& first_key = keys[i];
+    BinaryKey& second_key = keys[i+1];
+    while(g <= first_key.Get(d).size()) {
+      for(BinaryKey& second_key : keys){
+	if(first_key.Get(d)[g] != second_key.Get(d)[g]) {
+	  g;
+	}
       }
+      g++;
+    }
+  }
+  
+  return g;
+  
+}
+
+
+struct Partitioning {
+  std::vector<BinaryKey> bit0;
+  std::vector<BinaryKey> bit1;
+};
+
+
+Partitioning psi_partition(std::vector<BinaryKey>& keys, Dimension d, size_t g) {
+  Partitioning M;
+
+  for (BinaryKey& key : keys) {
+    if(key.Get(d)[g] == 0) {
+      M.bit0.push_back(key);
+    } else {
+      M.bit1.push_back(key);
+    }
+  }
+  return M;
+}
+
+
+// Binary Tree Node
+struct Node {
+  std::vector<bool> s_P;
+  std::vector<bool> s_V;
+  Dimension d;
+  Node *left, *right;
+};
+
+
+Node* ConstructRCAS(std::vector<BinaryKey>& keys, Dimension d, size_t g_P, size_t g_V) {
+  // TODO
+  size_t g_Pp = dsc_inc(keys, Path, g_P);
+  size_t g_Vp = dsc_inc(keys, Value, g_V);
+  //
+  Node* n = nullptr;
+  for(int i = 0; i < keys.size(); i++) {
+    BinaryKey& key_i = keys[i];
+    BinaryKey& key_j = keys[i+1];
+    (*n).s_P.push_back(key_i.Get(Path)[g_P, g_Pp - 1]);
+    n -> s_P;
+    (*n).s_V.push_back(key_i.Get(Value)[g_P, g_Pp - 1]);
+    n -> s_V;
+    // TODO
+    if(g_Pp > key_i.Get(Path).size() && g_Vp > key_i.Get(Value).size()) {
+      n -> d;
+      for(BinaryKey& key_j : keys) {
+	// Append reference WHAT?
+      }
+    }
+  
+    if(g_Pp > key_i.Get(Path).size()) {
+      d = Value;
+      size_t g_D = g_Vp;
+    } else if(g_Vp > key_i.Get(Value).size()) {
+      d = Path;
+      size_t g_D = g_Pp;
+    }
+  
+    //Partitioning M = psi_partition(keys, d, g_D);
+    //if(M.bit0.size() != 0) {
+	//(*n).children[0] = ConstructRCAS(keys, d, g_Pp, g_Vp);
+	//}
+      //if(M.bit1.size() != 0) {
+	//(*n).children[1] = ConstructRCAS(keys, d, g_Pp, g_Vp);
+	//}
+  }
+  return n;
+}
+
+
+
+int main()
+{
+  std::vector<std::string> list_paths = {
+    "/bom/item/canoe",
+    "/bom/item/carabinier",
+    "/bom/item/car/battery",
+    "/bom/item/car/battery",
+    "/bom/item/car/belt"
+  };
+
+  std::vector<uint32_t> list_values = {
+    0x00010E50,
+    0x000000F1,
+    0x0003D35A,
+    0x0003D3B0,
+    0x00000B4A
+  };
+
+  std::vector<BinaryKey> keys;
+  for (size_t i = 0; i < list_paths.size(); ++i) {
+    BinaryKey bkey;
+    bkey.path_  = path_to_binary(list_paths[i]);
+    bkey.value_ = value_to_binary(list_values[i]);
+    keys.push_back(bkey);
   }
 
-  Node* root = nullptr;
-  int key = 0;
-  create_tree(root, key, index_list_other);
-  return 0;
-  
-}  
+  for (BinaryKey& key : keys) {
+    key.Dump();
+    std::cout << std::endl;
+  }
 
+
+  BinaryKey& first_key = keys[0];
+  first_key.Get(Path);
+
+   std::cout << "Disc P bit: " << dsc_inc(keys, Path, 0) << std::endl; 
+   std::cout << "Disc V bit: " << dsc_inc(keys, Value, 0) << std::endl; 
+
+  return 0;
+}
