@@ -11,11 +11,10 @@ enum Dimension {
   Leaf
 };
 
-
 struct BinaryKey {
   std::vector<bool> path_;
   std::vector<bool> value_;
-  uint64_t r;
+  string r;
 
   void Dump() {
     std::cout << "path:  ";
@@ -47,7 +46,6 @@ struct BinaryKey {
 };
 
 
-
 std::vector<bool> path_to_binary(const std::string& path) {
   std::vector<bool> bpath(8*(path.size()+1), false);
   const char *path_c = path.c_str();
@@ -76,7 +74,7 @@ size_t dsc_inc(std::vector<BinaryKey>& keys, Dimension d, size_t g) {
     BinaryKey& first_key = keys[0];
 
     while(g <= first_key.Get(d).size()) {
-      for(BinaryKey& second_key : keys){
+      for(BinaryKey& second_key : keys) {
 	if(first_key.Get(d)[g] != second_key.Get(d)[g]) {
 	  return g;
 	}
@@ -113,51 +111,71 @@ Partitioning psi_partition(std::vector<BinaryKey>& keys, Dimension d, size_t g) 
 struct Node {
   std::vector<bool> s_P;
   std::vector<bool> s_V;
+  std::vector<string> reference;
   Dimension d;
   Node *left, *right;
 };
 
+void PrintTree(Node *root, string space) 
+{
+  if (root != NULL) { 
+    cout << space << endl;
+    cout << space << "value[";
+    if (root -> s_V.size() != 0) {
+      for (int i = 0; i <= root -> s_V.size(); i++) {
+	cout << root -> s_V[i];
+      }
+    }
+    cout << "]" << endl;
+    cout <<space << "path[";
+    if (root -> s_P.size() != 0) {
+      for (int i = 0; i <= root -> s_P.size(); i++) {
+	cout << root->s_P[i];
+      }
+    }
+    cout << "]" << endl;
+    PrintTree(root->left, space + " "); 
+    PrintTree(root->right, space + " ");
+  }
+	
+} 
 
 Node* ConstructRCAS(std::vector<BinaryKey>& keys, Dimension d, size_t g_P, size_t g_V) {
 
   size_t g_Pp = dsc_inc(keys, Path, g_P);
   size_t g_Vp = dsc_inc(keys, Value, g_V);
 
-  Node* n = new Node();  
+  Node* n = new Node();
   
     BinaryKey& key_i = keys[0];
-
-    // s_P should contain all of the bits between g_P and g_Pp (e.g. loop over the key)
-    for (int i = 0; i < key_i.Get(Path).size(); i++) { 
-      if (i >= g_P || i < g_Pp) {
+    
+     // s_P and s_V should contain all of the bits between g_P and g_Pp (e.g. loop over the key)
+    for (int i = g_P; i >= g_P && i < key_i.Get(Path).size(); i++) {
 	n -> s_P.push_back(key_i.Get(Path)[i]);
-      }
     }
-
-    for (int i = 0; i < key_i.Get(Value).size(); i++) {
-      if (i >= g_V || i < g_Vp) {
-        n -> s_V.push_back(key_i.Get(Value)[i]);
-      }
+    
+    for (int i = g_V; i >= g_V && i < key_i.Get(Value).size(); i++) { 
+	n -> s_V.push_back(key_i.Get(Value)[i]);
     }
-
+   
     if(g_Pp >= key_i.Get(Path).size() && g_Vp >= key_i.Get(Value).size()) {
       n -> d = Leaf;
       for(BinaryKey& key_j : keys) {
-        // Add reference
+	n -> reference.push_back(key_j.r);
       }
       return n;
     }
 
     size_t g_D;
-    if(key_i.Get(d).size() == key_i.Get(Path).size() && g_Pp >= key_i.Get(Path).size()) {
+    if(d == Path && g_Pp >= key_i.Get(Path).size()) {
       d = Value;
-      g_D = g_Vp;
-    } else if(key_i.Get(d).size() == key_i.Get(Value).size() && g_Vp >= key_i.Get(Value).size()) {
+    } else if(d == Value && g_Vp >= key_i.Get(Value).size()) {
       d = Path;
-      g_D = g_Pp;
-    } else if (key_i.Get(d).size() == key_i.Get(Value).size()) {
+    }
+    
+    if (d == Value) {
       g_D = g_Vp;
-    } else if (key_i.Get(d).size() == key_i.Get(Path).size()) {
+    } else if (d == Path) {
       g_D = g_Pp;
     }
 
@@ -169,18 +187,16 @@ Node* ConstructRCAS(std::vector<BinaryKey>& keys, Dimension d, size_t g_P, size_
     } else if (d == Value) {
       d = Path;
     }
-
-    cout << "Disc P bit: " << g_Pp << endl;
-    cout << "Disc V bit: " << g_Vp << endl;
-    cout << "Partitioning wrt:" << g_D << endl;
-
+    
     n -> left = ConstructRCAS(M.bit0, d, g_Pp, g_Vp);
     n -> right = ConstructRCAS(M.bit1, d, g_Pp, g_Vp);
 
+    //cout << "Disc P bit: " << g_Pp << endl;
+    //cout << "Disc V bit: " << g_Vp << endl;
+    //cout << "Partitioning wrt:" << g_D << endl;
+
   return n;
 }
-
-
 
 int main()
 {
@@ -200,17 +216,31 @@ int main()
     0x00000B4A
   };
 
+  // finish list for all entries
+  std::vector<string> list_ref = {
+    "r_1",
+    "r_2",
+    "r_3",
+    "r_4",
+    "r_5"
+  };
+
   std::vector<BinaryKey> keys;
   for (size_t i = 0; i < list_paths.size(); ++i) {
     BinaryKey bkey;
     bkey.path_ = path_to_binary(list_paths[i]);
     bkey.value_ = value_to_binary(list_values[i]);
+    bkey.r = list_ref[i];
     keys.push_back(bkey);
   }
-   size_t g_P = dsc_inc(keys, Path, 0);
-   size_t g_V = dsc_inc(keys, Value, 0);
 
-   ConstructRCAS(keys, Path, g_P, g_V); 
+  size_t g_P = 0;
+  size_t g_V = 0;   
+
+   ConstructRCAS(keys, Path, g_P, g_V);
+   // set root of node for printing equal to function above
+   Node* root = ConstructRCAS(keys, Path, g_P, g_V);
+   PrintTree(root, " "); 
 
   return 0;
 }
