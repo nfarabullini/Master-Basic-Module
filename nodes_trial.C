@@ -120,6 +120,7 @@ void PrintTree(Node *root, string space)
 {
   if (root != NULL) { 
     cout << space << endl;
+   
     cout << space << "value[";
     if (root -> s_V.size() != 0) {
       for (int i = 0; i <= root -> s_V.size(); i++) {
@@ -127,13 +128,21 @@ void PrintTree(Node *root, string space)
       }
     }
     cout << "]" << endl;
-    cout <<space << "path[";
+    
+    cout << space << "path[";
     if (root -> s_P.size() != 0) {
       for (int i = 0; i <= root -> s_P.size(); i++) {
 	cout << root->s_P[i];
       }
     }
     cout << "]" << endl;
+
+    if (root -> d == Path) {
+      cout << "Dimension: Path" << endl;
+    } else if (root -> d == Value) {
+      cout << "Dimension: Value" << endl;
+    }
+    
     PrintTree(root->left, space + " "); 
     PrintTree(root->right, space + " ");
   }
@@ -150,11 +159,11 @@ Node* ConstructRCAS(std::vector<BinaryKey>& keys, Dimension d, size_t g_P, size_
     BinaryKey& key_i = keys[0];
     
      // s_P and s_V should contain all of the bits between g_P and g_Pp (e.g. loop over the key)
-    for (int i = g_P; i >= g_P && i < key_i.Get(Path).size(); i++) {
+    for (int i = g_P; i < g_Pp && i < key_i.Get(Path).size(); i++) {
 	n -> s_P.push_back(key_i.Get(Path)[i]);
     }
     
-    for (int i = g_V; i >= g_V && i < key_i.Get(Value).size(); i++) { 
+    for (int i = g_V; i < g_Vp && i < key_i.Get(Value).size(); i++) { 
 	n -> s_V.push_back(key_i.Get(Value)[i]);
     }
    
