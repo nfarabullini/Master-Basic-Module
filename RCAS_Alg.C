@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <cstdint>
-#include <bits/stdc++.h>
 
 using namespace std;
 
