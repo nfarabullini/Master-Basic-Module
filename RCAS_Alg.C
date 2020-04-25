@@ -10,6 +10,17 @@ enum Dimension {
   Leaf
 };
 
+enum Matches {
+  MATCH,
+  MISMATCH,
+  INCOMPLETE
+};
+
+struct RangeValues {
+  std::vector<bool> vbit_;
+  return vbit_;
+};
+
 struct BinaryKey {
   std::vector<bool> path_;
   std::vector<bool> value_;
@@ -131,7 +142,7 @@ void PrintTree(Node *root, string space)
     cout << space << "path[";
     if (root -> s_P.size() != 0) {
       for (int i = 0; i <= root -> s_P.size(); i++) {
-	cout << root->s_P[i];
+	cout << root -> s_P[i];
       }
     }
     cout << "]" << endl;
@@ -206,6 +217,75 @@ Node* ConstructRCAS(std::vector<BinaryKey>& keys, Dimension d, size_t g_P, size_
   return n;
 }
 
+void UpdateBuffers(Node *n, std::vector<bool>& buff_V, std::vector<bool>& buff_P) {
+  //buff_P contains all mutual path bits from root up until n
+  // add contents of s_P to buff_P and same for buff_V
+  buff_P = n -> s_P;
+  buff_V = n -> s_V;
+}
+
+string MatchValue(std::vector<bool>& buff_V, std::vector<RangeValues>& rangeVals, Node *n, Matches m) {
+  //lo, hi = longest common prefix between bff_V and (v_l and v_h)
+  // lo <- discriminative bit between buff_V and v_l (similar approach to dsc_inc)
+
+  size_t lo = 0;
+  size_t hi = 0;
+
+  RangeValues& v_l = rangeVals[0];
+  RangeValues& v_h = rangeVals[1];
+  
+  while (lo <= buff_V.size()) {
+    if (buff_V[lo] != v_l[lo]) {
+      lo = lo;
+    }
+    lo++;
+  }
+
+  while (hi <= buff_V.size()) {
+    if (buff_V[hi] != v_h[hi]) {
+      hi = hi;
+    }
+    hi++;
+  }
+
+  bool bool_0 = 0;
+  bool bool_1 = 1;
+  string outcome = "outside";
+
+  int i = 0;
+   while (i <= buff_V.size()) {
+    if ((buff_V[i] == bool_1 && v_l[i] == bool_0) && (buff_V[i] == bool_0 && v_h[i] == bool_1)) {
+      outcome = "inside";
+      i = i;
+    }
+    i++;
+   }
+
+   if (i == buff_V.size()) {
+     outcome = "inside";
+   }
+
+   string m_V;
+  if (buff_V[lo] < v_l[lo]) {
+    // create enum for three returns
+    m_V = "MISMATCH";
+  } else if (buff_V[hi] > v_h[hi]) {
+    m_V = "MISMATCH";
+  } else if (n -> d == Leaf && outcome == "inside") {
+    //buff_V has to present bit 1 sooner than v_l and later than v_h or be identical to one of them: v_l <= buff_V <= v_h
+    m_V = "MATCH";
+  } else if (n -> d != Leaf && v_l[lo] < buff_V[lo] && buff_V[hi] < v_h[hi]) {
+    m_V = "MATCH";
+  } else {
+    m_V = "INCOMPLETE";
+  }
+
+  return m_V;
+}
+
+//void MatchPath(buff_P, q, s, Node *n) {
+//}
+
 int main()
 {
   std::vector<std::string> list_paths = {
@@ -248,7 +328,27 @@ int main()
    ConstructRCAS(keys, Path, g_P, g_V);
    // set root of node for printing equal to function above
    Node* root = ConstructRCAS(keys, Path, g_P, g_V);
-   PrintTree(root, " "); 
+   PrintTree(root, " ");
+
+   // path predicate
+   string q;
+   // value predicate
+   std::vector<uint32_t> v_32 = {
+     0X00050151,
+     0X010067E0
+   };
+   
+   std::vector<RangeValues> rangeVals;
+   for (size_t i = 0; i < v_32.size(); ++i) {
+     RangeValues range;
+     range.vbit_ = value_to_binary(v_32[i]);
+     rangeVals.push_back(range);
+   }
+   //convert v_l and v_h to bits with value_to_binary
+
+   std::vector<bool> buff_P;
+   std::vector<bool> buff_V;
+   //CasQuery(root, q, range, buff_V, buff_P)
 
   return 0;
 }
