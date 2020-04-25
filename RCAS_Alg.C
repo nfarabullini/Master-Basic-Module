@@ -17,8 +17,12 @@ enum Matches {
 };
 
 struct RangeValues {
-  std::vector<bool> vbit_;
-  return vbit_;
+  //std::vector<bool> v_l = rangeVals[0];
+  //std::vector<bool> v_h = rangeVals[1];
+
+  std::vector<bool> v_l;
+  std::vector<bool> v_h;
+  //return vbit_;
 };
 
 struct BinaryKey {
@@ -224,25 +228,23 @@ void UpdateBuffers(Node *n, std::vector<bool>& buff_V, std::vector<bool>& buff_P
   buff_V = n -> s_V;
 }
 
-string MatchValue(std::vector<bool>& buff_V, std::vector<RangeValues>& rangeVals, Node *n, Matches m) {
+string MatchValue(std::vector<bool>& buff_V, RangeValues& range, Node *n, Matches m) {
+//string MatchValue(std::vector<bool>& buff_V, std::vector<RangeValues>& rangeVals, Node *n, Matches m) {
   //lo, hi = longest common prefix between bff_V and (v_l and v_h)
   // lo <- discriminative bit between buff_V and v_l (similar approach to dsc_inc)
 
   size_t lo = 0;
   size_t hi = 0;
-
-  RangeValues& v_l = rangeVals[0];
-  RangeValues& v_h = rangeVals[1];
   
   while (lo <= buff_V.size()) {
-    if (buff_V[lo] != v_l[lo]) {
+    if (buff_V[lo] != range.v_l[lo]) {
       lo = lo;
     }
     lo++;
   }
 
   while (hi <= buff_V.size()) {
-    if (buff_V[hi] != v_h[hi]) {
+    if (buff_V[hi] != range.v_h[hi]) {
       hi = hi;
     }
     hi++;
@@ -254,7 +256,7 @@ string MatchValue(std::vector<bool>& buff_V, std::vector<RangeValues>& rangeVals
 
   int i = 0;
    while (i <= buff_V.size()) {
-    if ((buff_V[i] == bool_1 && v_l[i] == bool_0) && (buff_V[i] == bool_0 && v_h[i] == bool_1)) {
+    if ((buff_V[i] == bool_1 && range.v_l[i] == bool_0) && (buff_V[i] == bool_0 && range.v_h[i] == bool_1)) {
       outcome = "inside";
       i = i;
     }
@@ -266,15 +268,15 @@ string MatchValue(std::vector<bool>& buff_V, std::vector<RangeValues>& rangeVals
    }
 
    string m_V;
-  if (buff_V[lo] < v_l[lo]) {
+  if (buff_V[lo] < range.v_l[lo]) {
     // create enum for three returns
     m_V = "MISMATCH";
-  } else if (buff_V[hi] > v_h[hi]) {
+  } else if (buff_V[hi] > range.v_h[hi]) {
     m_V = "MISMATCH";
   } else if (n -> d == Leaf && outcome == "inside") {
     //buff_V has to present bit 1 sooner than v_l and later than v_h or be identical to one of them: v_l <= buff_V <= v_h
     m_V = "MATCH";
-  } else if (n -> d != Leaf && v_l[lo] < buff_V[lo] && buff_V[hi] < v_h[hi]) {
+  } else if (n -> d != Leaf && range.v_l[lo] < buff_V[lo] && buff_V[hi] < range.v_h[hi]) {
     m_V = "MATCH";
   } else {
     m_V = "INCOMPLETE";
@@ -339,11 +341,12 @@ int main()
    };
    
    std::vector<RangeValues> rangeVals;
-   for (size_t i = 0; i < v_32.size(); ++i) {
+   //for (size_t i = 0; i < v_32.size(); ++i) {
      RangeValues range;
-     range.vbit_ = value_to_binary(v_32[i]);
+     range.v_l = value_to_binary(v_32[0]);
+     range.v_l = value_to_binary(v_32[1]);
      rangeVals.push_back(range);
-   }
+     //}
    //convert v_l and v_h to bits with value_to_binary
 
    std::vector<bool> buff_P;
