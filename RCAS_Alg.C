@@ -17,12 +17,8 @@ enum Matches {
 };
 
 struct RangeValues {
-  //std::vector<bool> v_l = rangeVals[0];
-  //std::vector<bool> v_h = rangeVals[1];
-
   std::vector<bool> v_l;
   std::vector<bool> v_h;
-  //return vbit_;
 };
 
 struct BinaryKey {
@@ -214,79 +210,86 @@ Node* ConstructRCAS(std::vector<BinaryKey>& keys, Dimension d, size_t g_P, size_
     n -> left = ConstructRCAS(M.bit0, d, g_Pp, g_Vp);
     n -> right = ConstructRCAS(M.bit1, d, g_Pp, g_Vp);
 
-    //cout << "Disc P bit: " << g_Pp << endl;
-    //cout << "Disc V bit: " << g_Vp << endl;
-    //cout << "Partitioning wrt:" << g_D << endl;
-
   return n;
 }
 
 void UpdateBuffers(Node *n, std::vector<bool>& buff_V, std::vector<bool>& buff_P) {
-  //buff_P contains all mutual path bits from root up until n
-  // add contents of s_P to buff_P and same for buff_V
   buff_P = n -> s_P;
   buff_V = n -> s_V;
 }
 
-string MatchValue(std::vector<bool>& buff_V, RangeValues& range, Node *n, Matches m) {
-//string MatchValue(std::vector<bool>& buff_V, std::vector<RangeValues>& rangeVals, Node *n, Matches m) {
+Matches MatchValue(std::vector<bool>& buff_V, RangeValues& range, Node *n) {
   //lo, hi = longest common prefix between bff_V and (v_l and v_h)
   // lo <- discriminative bit between buff_V and v_l (similar approach to dsc_inc)
 
   size_t lo = 0;
   size_t hi = 0;
-  
-  while (lo <= buff_V.size()) {
-    if (buff_V[lo] != range.v_l[lo]) {
-      lo = lo;
-    }
+
+  while (lo < buff_V.size() && buff_V[lo] != range.v_l[lo]) {
     lo++;
   }
 
-  while (hi <= buff_V.size()) {
-    if (buff_V[hi] != range.v_h[hi]) {
-      hi = hi;
-    }
+  while (hi < buff_V.size() && buff_V[hi] != range.v_h[hi]) {
     hi++;
   }
 
-  bool bool_0 = 0;
-  bool bool_1 = 1;
+  string m_V;
+   
+  if (lo < buff_V.size() && lo < range.v_l.size() && buff_V[lo] < range.v_l[lo]) {
+    // create enum for three returns
+    return MISMATCH;
+  } else if ((hi < buff_V.size() && hi < range.v_l.size()) && buff_V[hi] > range.v_h[hi]) {
+    return MISMATCH;
+  }
+  
   string outcome = "outside";
-
   int i = 0;
-   while (i <= buff_V.size()) {
-    if ((buff_V[i] == bool_1 && range.v_l[i] == bool_0) && (buff_V[i] == bool_0 && range.v_h[i] == bool_1)) {
+    if ((lo < buff_V.size() && lo < range.v_l.size() && buff_V[lo] >= range.v_l[lo]) && (buff_V[hi] <= range.v_h[hi])) {
       outcome = "inside";
       i = i;
     }
-    i++;
-   }
-
-   if (i == buff_V.size()) {
-     outcome = "inside";
-   }
-
-   string m_V;
-  if (buff_V[lo] < range.v_l[lo]) {
-    // create enum for three returns
-    m_V = "MISMATCH";
-  } else if (buff_V[hi] > range.v_h[hi]) {
-    m_V = "MISMATCH";
-  } else if (n -> d == Leaf && outcome == "inside") {
+   
+  if (n -> d == Leaf && outcome == "inside") {
     //buff_V has to present bit 1 sooner than v_l and later than v_h or be identical to one of them: v_l <= buff_V <= v_h
-    m_V = "MATCH";
-  } else if (n -> d != Leaf && range.v_l[lo] < buff_V[lo] && buff_V[hi] < range.v_h[hi]) {
-    m_V = "MATCH";
+    return MATCH;
+  } else if (n -> d != Leaf && ((lo < buff_V.size() && lo < range.v_l.size()) && buff_V[lo] > range.v_l[lo]) && (buff_V[hi] < range.v_h[hi])) {
+    return MATCH;
   } else {
-    m_V = "INCOMPLETE";
+    return INCOMPLETE;
   }
-
-  return m_V;
 }
 
-//void MatchPath(buff_P, q, s, Node *n) {
-//}
+Matches MatchPath(std::vector<bool>& buff_P, std::vector<bool> q, Node *n) {
+
+  string m_P;
+  int i = 0;
+  while (i < buff_P.size() && i < q.size()) {
+   if(q[i] != buff_P[i]) {
+     return MISMATCH;
+    }
+    i++;
+  }
+
+  if (n -> d == Leaf) {
+    return MATCH;
+  } else {
+    return INCOMPLETE;
+  }
+}
+
+void CasQuery(Node *n, std::vector<bool> q, RangeValues& range, std::vector<bool>& buff_V, std::vector<bool>& buff_P) {
+  string m_V;
+  string m_P;
+  m_V = MatchValue(buff_V, range, n);
+  m_P = MatchPath(buff_P, q, n);
+
+  if (m_V == "MATCH" && m_P == "MATCH") {
+    cout << m_P << endl;
+    //print n -> reference?
+  } else if (m_V != "MISMATCH" && m_P != "MISMATCH") {
+    cout << m_P << endl;
+  }
+}
 
 int main()
 {
@@ -333,21 +336,18 @@ int main()
    PrintTree(root, " ");
 
    // path predicate
-   string q;
+   string query_path = "/bom/item/car/engine$";
+   std::vector<bool> q = path_to_binary(query_path);
+   
    // value predicate
    std::vector<uint32_t> v_32 = {
      0X00050151,
      0X010067E0
    };
    
-   std::vector<RangeValues> rangeVals;
-   //for (size_t i = 0; i < v_32.size(); ++i) {
      RangeValues range;
      range.v_l = value_to_binary(v_32[0]);
-     range.v_l = value_to_binary(v_32[1]);
-     rangeVals.push_back(range);
-     //}
-   //convert v_l and v_h to bits with value_to_binary
+     range.v_h = value_to_binary(v_32[1]);
 
    std::vector<bool> buff_P;
    std::vector<bool> buff_V;
