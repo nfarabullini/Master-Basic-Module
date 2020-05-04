@@ -236,7 +236,6 @@ Matches MatchValue(std::vector<bool>& buff_V, RangeValues& range, Node *n) {
   string m_V;
    
   if (lo < buff_V.size() && lo < range.v_l.size() && buff_V[lo] < range.v_l[lo]) {
-    // create enum for three returns
     return MISMATCH;
   } else if ((hi < buff_V.size() && hi < range.v_l.size()) && buff_V[hi] > range.v_h[hi]) {
     return MISMATCH;
@@ -282,12 +281,17 @@ void CasQuery(Node *n, std::vector<bool> q, RangeValues& range, std::vector<bool
   string m_P;
   m_V = MatchValue(buff_V, range, n);
   m_P = MatchPath(buff_P, q, n);
+  std::vector<string> ref_match;
 
   if (m_V == "MATCH" && m_P == "MATCH") {
-    cout << m_P << endl;
-    //print n -> reference?
+    ref_match = n -> reference;
+    for (int i = 0; i < ref_match.size(); i++) {
+      cout << ref_match[i];
+    }
+    cout << "" << endl;
   } else if (m_V != "MISMATCH" && m_P != "MISMATCH") {
-    cout << m_P << endl;
+    CasQuery(n -> right, q, range, buff_V, buff_P);
+    CasQuery(n -> left, q, range, buff_V, buff_P);
   }
 }
 
