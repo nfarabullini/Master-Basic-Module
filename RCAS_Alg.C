@@ -262,11 +262,8 @@ Matches MatchPath(std::vector<bool>& buff_P, std::vector<bool> q, Node *n, bool&
  // if query_descendant equals true, evaluate everything up until the //, if they match then return MATCH else the code as is
    switch (query_descendant) { 
        case true:
-	 while (i < (q.size()-2)) {
-	   if (q[i] == buff_P[i]) {
-	     return MATCH;
-	   }
-	   i++;
+	 if (q[i] == buff_P[i]) {
+	   return MATCH;
 	 }
        case false:
 	 if (n -> d == Leaf) {
@@ -279,11 +276,18 @@ Matches MatchPath(std::vector<bool>& buff_P, std::vector<bool> q, Node *n, bool&
 
 void Collect(Node *n) {
   std::vector<string> ref_match;
-  ref_match = n -> reference;
-  for (int i = 0; i < ref_match.size(); i++) {
-    cout << ref_match[i];
+ 
+  if (n -> d == Leaf) {
+    //Collect(n);
+    ref_match = n -> reference;
+    for (int i = 0; i < ref_match.size(); i++) {
+      cout << ref_match[i];
+    }
+    cout << "" << endl;
+  } else {
+    CasQuery(n -> right, q, range, buff_V, buff_P, query_descendant);
+    CasQuery(n -> left, q, range, buff_V, buff_P, query_descendant);
   }
-  cout << "" << endl;
 }
 
 void CasQuery(Node *n, std::vector<bool>& q, RangeValues& range, std::vector<bool> buff_V, std::vector<bool> buff_P, bool& query_descendant) {
@@ -294,16 +298,10 @@ void CasQuery(Node *n, std::vector<bool>& q, RangeValues& range, std::vector<boo
   m_P = MatchPath(buff_P, q, n, query_descendant);
 
   if (m_V == MATCH && m_P == MATCH) {
-    if (n -> d == Leaf) {
-      Collect(n);
-    } else {
-      CasQuery(n -> right, q, range, buff_V, buff_P, query_descendant);
-      CasQuery(n -> left, q, range, buff_V, buff_P, query_descendant);
-    }
-
+    Collect(n);
   } else if (m_V != MISMATCH && m_P != MISMATCH) {
-      CasQuery(n -> right, q, range, buff_V, buff_P, query_descendant);
-      CasQuery(n -> left, q, range, buff_V, buff_P, query_descendant);
+    CasQuery(n -> right, q, range, buff_V, buff_P, query_descendant);
+    CasQuery(n -> left, q, range, buff_V, buff_P, query_descendant);
   }
 }
 
@@ -356,7 +354,12 @@ int main()
    bool query_descendant = false;
    for (int i = 0; i < query_path.size(); i++) {
      if (query_path[i - 1] == '/' && query_path[i] == '/') {
-       query_descendant = true; 
+       query_descendant = true;
+       query_path = query_path[];
+       // drop // here
+	int i = query_path.size();
+	int k = i - 2;
+	query_path.erase(k, i); 
      }
    }
    std::vector<bool> q = path_to_binary(query_path);
