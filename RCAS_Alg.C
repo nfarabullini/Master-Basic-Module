@@ -285,8 +285,10 @@ void Collect(Node *n) {
     }
     cout << "" << endl;
   } else {
-    CasQuery(n -> right, q, range, buff_V, buff_P, query_descendant);
-    CasQuery(n -> left, q, range, buff_V, buff_P, query_descendant);
+    //CasQuery(n -> right, q, range, buff_V, buff_P, query_descendant);
+    //CasQuery(n -> left, q, range, buff_V, buff_P, query_descendant);
+    Collect(n -> right);
+    Collect(n -> left);
   }
 }
 
@@ -355,7 +357,6 @@ int main()
    for (int i = 0; i < query_path.size(); i++) {
      if (query_path[i - 1] == '/' && query_path[i] == '/') {
        query_descendant = true;
-       query_path = query_path[];
        // drop // here
 	int i = query_path.size();
 	int k = i - 2;
