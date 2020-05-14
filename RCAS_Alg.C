@@ -57,9 +57,9 @@ struct BinaryKey {
 
 
 std::vector<bool> path_to_binary(const std::string& path) {
-  std::vector<bool> bpath(8*(path.size()+1), false);
+  std::vector<bool> bpath(8*(path.size()), false);
   const char *path_c = path.c_str();
-  for (std::size_t i = 0; i < path.size()+1; ++i) {
+  for (std::size_t i = 0; i < path.size(); ++i) {
     std::bitset<8> bitset(path_c[i]);
     for (int j = 0; j < 8; j++) {
       bpath[i*8+(8-j-1)] = bitset[j];
@@ -132,7 +132,7 @@ void PrintTree(Node *root, string space) {
    
     cout << space << "value[";
     if (root -> s_V.size() != 0) {
-      for (int i = 0; i < root -> s_V.size(); i++) {
+      for (size_t i = 0; i < root -> s_V.size(); i++) {
 	cout << root -> s_V[i];
       }
     }
@@ -140,7 +140,7 @@ void PrintTree(Node *root, string space) {
     
     cout << space << "path[";
     if (root -> s_P.size() != 0) {
-      for (int i = 0; i < root -> s_P.size(); i++) {
+      for (size_t i = 0; i < root -> s_P.size(); i++) {
 	cout << root -> s_P[i];
       }
     }
@@ -150,6 +150,9 @@ void PrintTree(Node *root, string space) {
       cout << "Dimension: Path" << endl;
     } else if (root -> d == Value) {
       cout << "Dimension: Value" << endl;
+    } if (root -> d == Leaf) {
+      cout << "Dimension: Leaf" << endl;
+      cout << root -> reference[0] << endl;
     }
     
     PrintTree(root->left, space + " "); 
@@ -168,11 +171,11 @@ Node* ConstructRCAS(std::vector<BinaryKey>& keys, Dimension d, size_t g_P, size_
     BinaryKey& key_i = keys[0];
     
      // s_P and s_V contain all of the bits between g_P and g_Pp (e.g. loop over the key)
-    for (int i = g_P; i < g_Pp && i < key_i.Get(Path).size(); i++) {
+    for (size_t i = g_P; i < g_Pp && i < key_i.Get(Path).size(); i++) {
 	n -> s_P.push_back(key_i.Get(Path)[i]);
     }
     
-    for (int i = g_V; i < g_Vp && i < key_i.Get(Value).size(); i++) { 
+    for (size_t i = g_V; i < g_Vp && i < key_i.Get(Value).size(); i++) { 
 	n -> s_V.push_back(key_i.Get(Value)[i]);
     }
    
@@ -248,10 +251,9 @@ Matches MatchValue(std::vector<bool>& buff_V, RangeValues& range, Node *n) {
   }
 }
 
-Matches MatchPath(std::vector<bool>& buff_P, std::vector<bool> q, Node *n, bool& query_descendant) {
+Matches MatchPath(std::vector<bool>& buff_P, std::vector<bool> q, Node*, bool query_descendant) {
 
-  string m_P;
-  int i = 0;
+  size_t i = 0;
 
   while (i < buff_P.size() && i < q.size()) {
     if(q[i] != buff_P[i]) {
@@ -259,34 +261,32 @@ Matches MatchPath(std::vector<bool>& buff_P, std::vector<bool> q, Node *n, bool&
     }
     i++;
   }
- // if query_descendant equals true, evaluate everything up until the //, if they match then return MATCH else the code as is
-   switch (query_descendant) { 
-       case true:
-	 if (q[i] == buff_P[i]) {
-	   return MATCH;
-	 }
-       case false:
-	 if (n -> d == Leaf) {
-	   return MATCH;
-	 } else {
-	   return INCOMPLETE;
-	 }
-   }
+
+  if (i >= buff_P.size() && i >= q.size()) {
+    return MATCH;
+  } else if (i < buff_P.size() && i >= q.size()) {
+    if (query_descendant) {
+      return MATCH;
+    } else {
+      return MISMATCH;
+    }
+    //} else if (i < q.size() && i >= buff_P.size()) {
+    // return INCOMPLETE;
+  } else {
+    return INCOMPLETE;
+  }
 }
 
 void Collect(Node *n) {
   std::vector<string> ref_match;
  
   if (n -> d == Leaf) {
-    //Collect(n);
     ref_match = n -> reference;
-    for (int i = 0; i < ref_match.size(); i++) {
+    for (size_t i = 0; i < ref_match.size(); i++) {
       cout << ref_match[i];
     }
     cout << "" << endl;
   } else {
-    //CasQuery(n -> right, q, range, buff_V, buff_P, query_descendant);
-    //CasQuery(n -> left, q, range, buff_V, buff_P, query_descendant);
     Collect(n -> right);
     Collect(n -> left);
   }
@@ -351,10 +351,9 @@ int main()
    PrintTree(root, " ");
 
    // path predicate
-   // loop over path predicate and see if at the end there is "//", if yes return query_descendant = TRUE else FALSE
-   string query_path = "/bom/item/car/engine$";
+   string query_path = "/bom/item/car/battery$";
    bool query_descendant = false;
-   for (int i = 0; i < query_path.size(); i++) {
+   for (size_t i = 0; i < query_path.size(); i++) {
      if (query_path[i - 1] == '/' && query_path[i] == '/') {
        query_descendant = true;
        // drop // here
@@ -367,7 +366,7 @@ int main()
    
    // value predicate
    std::vector<uint32_t> v_32 = {
-     0X00050151,
+     0X00000000,
      0X010067E0
    };
    
@@ -377,7 +376,7 @@ int main()
 
    std::vector<bool> buff_P;
    std::vector<bool> buff_V;
-   //CasQuery(root, q, range, buff_V, buff_P)
+   CasQuery(root, q, range, buff_V, buff_P, query_descendant);
 
   return 0;
 }
